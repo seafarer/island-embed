@@ -100,8 +100,10 @@ markup to re-paste. The full steps are in
 1. `astro.config.mjs` sets, for production builds,
    `base = '/wp-content/plugins/wcr-islands/island'` — the public path of the
    plugin's `island/` folder. Adjust if your plugin path differs.
-2. `npm run build`, then copy the contents of `dist/` into the plugin's
-   `island/` folder.
+2. `WCR_PLUGIN_ISLAND_DIR=/path/to/wcr-islands/island npm run deploy` — builds,
+   wipes the plugin's old `island/` assets, and copies the fresh `dist/` in, so
+   `index.html` and `_astro/` always come from the same build. (Hand-copying
+   risks mixing builds → mismatched hashes → the island 404s.)
 3. Add the `[wcr_island]` shortcode to the page via an Elementor Shortcode widget
    (or a Gutenberg shortcode block). The shortcode reads the built `index.html`
    and injects the Astro island runtime + the `<astro-island>` element — URLs

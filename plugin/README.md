@@ -35,7 +35,7 @@ plugin/
 
 ## Setup
 
-### 1. Build the island with the matching `base`
+### 1. Point `base` at the plugin's real URL path
 
 `astro.config.mjs` sets, for production builds:
 
@@ -45,22 +45,27 @@ base = '/wp-content/plugins/wcr-islands/island'
 
 This MUST equal the public URL path of this plugin's `island/` folder. If your
 install serves plugins from a different path (e.g. Bedrock's `/app/plugins/…`)
-or you rename the plugin, update `PROD_BASE` in `astro.config.mjs` to match.
+or you rename the plugin, update `PROD_BASE` in `astro.config.mjs` to match —
+otherwise the built asset URLs 404 and the browser reports the JS as
+`text/html` (WordPress's 404 page).
 
-From the repo root (`astro build` applies the production `base` automatically):
+### 2. Build + deploy in one step
+
+From the repo root, point the deploy script at this plugin's `island/` folder.
+It builds, **wipes the old assets**, and copies the fresh `dist/` in — so
+`index.html` and `_astro/` always come from the same build (mismatched hashes
+are the #1 cause of the island failing to load):
 
 ```bash
-npm run build
+WCR_PLUGIN_ISLAND_DIR=/path/to/wcr-islands/island npm run deploy
+# or:  npm run deploy -- /path/to/wcr-islands/island
 ```
 
-### 2. Drop the build into the plugin
+It prints the exact files it deployed. Then **hard-refresh** the page.
 
-Copy the **contents** of `dist/` into `island/` so you have:
-
-```
-island/index.html
-island/_astro/...
-```
+> Doing it by hand instead? Copy the *contents* of `dist/` into `island/` (so
+> you get `island/index.html` + `island/_astro/…`), and delete the old `_astro`
+> first. Never mix files from two builds.
 
 ### 3. Activate and embed
 
