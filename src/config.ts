@@ -20,4 +20,4 @@
 //       }
 //     ]
 //   }
-export const WP_FEED_ENDPOINT = '/wp-json/wcr/v1/landing-feed';
+export const WP_FEED_ENDPOINT = '/wp-json/island-embed/v1/landing-feed';

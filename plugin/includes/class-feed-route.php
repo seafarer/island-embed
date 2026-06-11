@@ -2,7 +2,7 @@
 /**
  * Registers the custom REST route the island fetches at runtime:
  *
- *   GET /wp-json/wcr/v1/landing-feed
+ *   GET /wp-json/island-embed/v1/landing-feed
  *
  * Returns the landing-page feed already grouped by category, so the browser
  * does a single request and the React island just renders the result. All
@@ -28,9 +28,9 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-class WCR_Islands_Feed_Route {
+class Island_Embed_Feed_Route {
 
-    const NAMESPACE = 'wcr/v1';
+    const NAMESPACE = 'island-embed/v1';
     const ROUTE     = '/landing-feed';
 
     /**

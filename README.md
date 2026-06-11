@@ -52,7 +52,7 @@ there on switching to `all: initial` if you want to block inherited styles too.
 The island fetches one route, configured in `src/config.ts`:
 
 ```
-GET /wp-json/wcr/v1/landing-feed
+GET /wp-json/island-embed/v1/landing-feed
 → { "groups": [ { "key", "label", "posts": [ { id, title, date, excerpt, link, thumbnail } ] } ] }
 ```
 
@@ -98,13 +98,13 @@ markup to re-paste. The full steps are in
 [`plugin/README.md`](./plugin/README.md). In short:
 
 1. `astro.config.mjs` sets, for production builds,
-   `base = '/wp-content/plugins/wcr-islands/island'` — the public path of the
+   `base = '/wp-content/plugins/island-embed/island'` — the public path of the
    plugin's `island/` folder. Adjust if your plugin path differs.
-2. `WCR_PLUGIN_ISLAND_DIR=/path/to/wcr-islands/island npm run deploy` — builds,
+2. `ISLAND_EMBED_TARGET=/path/to/island-embed/island npm run deploy` — builds,
    wipes the plugin's old `island/` assets, and copies the fresh `dist/` in, so
    `index.html` and `_astro/` always come from the same build. (Hand-copying
    risks mixing builds → mismatched hashes → the island 404s.)
-3. Add the `[wcr_island]` shortcode to the page via an Elementor Shortcode widget
+3. Add the `[island_embed]` shortcode to the page via an Elementor Shortcode widget
    (or a Gutenberg shortcode block). The shortcode reads the built `index.html`
    and injects the Astro island runtime + the `<astro-island>` element — URLs
    already correct from the `base` setting. (There's no stylesheet to wire up;
