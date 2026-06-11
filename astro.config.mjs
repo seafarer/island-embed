@@ -7,8 +7,8 @@ const WP_ORIGIN = 'http://refugepoint.test';
 // In production the island assets are served from inside the WordPress plugin
 // that owns them, so the URLs Astro bakes into the markup must point there.
 // This MUST match the plugin's folder + island subdir (see plugin/README.md):
-//   web root → /wp-content/plugins/wcr-islands/island/_astro/...
-const PROD_BASE = '/wp-content/plugins/wcr-islands/island';
+//   web root → /wp-content/plugins/island-embed/island/_astro/...
+const PROD_BASE = '/wp-content/plugins/island-embed/island';
 
 // `astro build` sets NODE_ENV=production, while `astro dev` does not — so builds
 // get the plugin path automatically and the dev server stays at root.

@@ -5,7 +5,7 @@
 //
 // Target resolution, in order:
 //   1. CLI arg:           node scripts/deploy.mjs /path/to/plugin/island
-//   2. env var:           WCR_PLUGIN_ISLAND_DIR=/path/to/plugin/island
+//   2. env var:           ISLAND_EMBED_TARGET=/path/to/plugin/island
 //   3. default:           ./plugin/island  (the in-repo reference plugin)
 import { existsSync, readdirSync, rmSync, cpSync, statSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -16,7 +16,7 @@ const distDir = join(root, 'dist');
 
 const target =
   process.argv[2] ||
-  process.env.WCR_PLUGIN_ISLAND_DIR ||
+  process.env.ISLAND_EMBED_TARGET ||
   join(root, 'plugin', 'island');
 
 if (!existsSync(distDir) || !existsSync(join(distDir, 'index.html'))) {
@@ -26,7 +26,7 @@ if (!existsSync(distDir) || !existsSync(join(distDir, 'index.html'))) {
 
 if (!existsSync(target)) {
   console.error(`✗ Target does not exist: ${target}`);
-  console.error('  Pass the plugin island/ path as an arg or set WCR_PLUGIN_ISLAND_DIR.');
+  console.error('  Pass the plugin island/ path as an arg or set ISLAND_EMBED_TARGET.');
   process.exit(1);
 }
 

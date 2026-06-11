@@ -1,9 +1,9 @@
 <?php
 /**
- * Registers the [wcr_island] shortcode that embeds the built Astro island.
+ * Registers the [island_embed] shortcode that embeds the built Astro island.
  *
  * Drop it into an Elementor "Shortcode" widget (or any Gutenberg shortcode
- * block):  [wcr_island]
+ * block):  [island_embed]
  *
  * How it works: it reads the built `island/index.html` and returns the inner
  * HTML of <body> — Astro's island runtime + the <astro-island> element. Because
@@ -20,21 +20,21 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-class WCR_Islands_Shortcode {
+class Island_Embed_Shortcode {
 
-    const TAG = 'wcr_island';
+    const TAG = 'island_embed';
 
     public function register(): void {
         add_shortcode(self::TAG, [$this, 'render']);
     }
 
     public function render($atts = [], $content = null): string {
-        $index = WCR_ISLANDS_DIST_DIR . 'index.html';
+        $index = ISLAND_EMBED_DIST_DIR . 'index.html';
 
         if (! file_exists($index)) {
             // Only surface the problem to users who can fix it.
             if (current_user_can('manage_options')) {
-                return '<!-- wcr_island: island/index.html not found. Run `npm run build` and copy dist/ into the plugin\'s island/ folder. -->';
+                return '<!-- island_embed: island/index.html not found. Run `npm run build` and copy dist/ into the plugin\'s island/ folder. -->';
             }
             return '';
         }
