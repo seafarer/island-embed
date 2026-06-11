@@ -1,11 +1,16 @@
 # WP Astro Islands Prototype
 
-A throwaway prototype validating the **runtime-fetch islands** pattern for the
-Artemis landing page. A single Astro page hosts one React island that, on every
-page load, fetches recent posts from three WordPress categories via the REST
-API and renders them client-side. The post data is **never** baked at build
-time — it loads fresh on every page view, so editing/publishing in WordPress is
-reflected on refresh with no rebuild.
+A prototype validating the **runtime-fetch islands** pattern for the Artemis
+landing page. A single Astro page hosts one React island that, on every page
+load, fetches a landing-page feed from a custom WordPress REST route and renders
+it client-side. The post data is **never** baked at build time — it loads fresh
+on every page view, so editing/publishing in WordPress is reflected on refresh
+with no rebuild.
+
+> **Two layers, one repo.** The Astro app (`src/`) is the island. The
+> production WordPress side — a custom feed route + an Elementor-friendly embed —
+> lives as a **reference plugin in [`plugin/`](./plugin)** that you copy into the
+> real WordPress plugin repo. See [`plugin/README.md`](./plugin/README.md).
 
 ## Stack
 
@@ -15,34 +20,31 @@ reflected on refresh with no rebuild.
 
 ## How it works
 
-- `src/pages/index.astro` renders one island, `<CategoryPosts client:load />`.
+- `src/pages/index.astro` renders one island, `<CategoryPosts client:load />`,
+  as the only thing in `<body>` (so the plugin's shortcode can lift the body
+  verbatim).
 - `src/components/CategoryPosts.tsx` is the island. On mount (in a `useEffect`)
-  it fetches all three categories in parallel with `Promise.all` and keeps the
-  results grouped by category in state. It renders three sections, each listing
-  ~4 recent posts (title, date, excerpt, thumbnail, link). It shows a single
-  loading state and a single error state for the island as a whole, plus
-  per-category messages for empty/failed categories.
-- All fetches use a **relative** `/wp-json` path so the same code works in dev
+  it makes a **single** fetch to the custom feed route and renders the groups it
+  gets back — one section per group, each listing recent posts (title, date,
+  excerpt, thumbnail, link). The grouping/curation is done server-side, so the
+  client just renders. Simple island-wide loading and error states.
+- The fetch uses a **relative** `/wp-json` path so the same code works in dev
   (via the Vite proxy) and in production (same-origin once embedded in
   WordPress).
 
-## Configure the categories
+## The data contract
 
-Edit `src/config.ts`. Each of the three entries takes either a `slug` (resolved
-to an ID in the browser at runtime via
-`/wp-json/wp/v2/categories?slug=…`) or a numeric `id` (used directly):
+The island fetches one route, configured in `src/config.ts`:
 
-```ts
-export const CATEGORIES: CategoryConfig[] = [
-  { label: 'News', slug: 'news' },
-  { label: 'Stories', slug: 'stories' },
-  { label: 'Updates', slug: 'updates' },
-];
+```
+GET /wp-json/wcr/v1/landing-feed
+→ { "groups": [ { "key", "label", "posts": [ { id, title, date, excerpt, link, thumbnail } ] } ] }
 ```
 
-> The slugs above are **placeholders**. Replace them with real category slugs
-> (or IDs) from the target WordPress site. A category whose slug doesn't resolve
-> simply shows an error message in its own section.
+The route returns the groups already assembled, with `excerpt` as plain text and
+`thumbnail` as a URL or `null`. It's implemented in the reference plugin
+([`plugin/includes/class-feed-route.php`](./plugin/includes/class-feed-route.php)),
+where the real custom-taxonomy/curation logic belongs.
 
 ## Local development
 
@@ -54,9 +56,9 @@ npm install
 npm run dev
 ```
 
-Open the dev URL. You should see three category sections populated from the live
-WordPress site. Edit or publish a post in WordPress, refresh, and the change
-appears with no rebuild.
+Open the dev URL. With the feed route available on the WordPress site, you'll
+see the category sections populate. Edit or publish a post, refresh, and the
+change appears with no rebuild.
 
 If your local WordPress runs at a different origin, change `WP_ORIGIN` in
 `astro.config.mjs`.
@@ -67,72 +69,35 @@ If your local WordPress runs at a different origin, change `WP_ORIGIN` in
 npm run build
 ```
 
-Output goes to `dist/`. Because the island data is fetched at runtime, you can
-confirm the pattern by opening `dist/index.html` — it contains only the
-`Loading recent posts…` placeholder, **not** any post data.
+`astro build` applies the plugin `base` path automatically (see below); the dev
+server stays at root. Output goes
+to `dist/`. Because the data is fetched at runtime, `dist/index.html` contains
+only the `Loading recent posts…` placeholder — **no post data** — which is the
+proof that the fetch happens at runtime in the browser.
 
-## Embedding in WordPress (copy & paste)
+## Embedding in WordPress
 
-The built page is the island host. Embedding it into an existing WordPress page
-takes two steps. **Hashed filenames change on every build**, so re-do this after
-each `npm run build`.
+Production embedding is handled by the reference plugin, which makes the
+hashed-filename churn disappear — rebuild, copy `dist/` into the plugin, done. No
+markup to re-paste. The full steps are in
+[`plugin/README.md`](./plugin/README.md). In short:
 
-### 1. Upload the JS chunks
-
-Copy the entire `dist/_astro/` directory to your WordPress site so its files are
-served at the **same origin** under `/_astro/…`. After the latest build the
-files are:
-
-```
-/_astro/client.CimA0ymp.js          ← React + Astro hydration runtime
-/_astro/CategoryPosts.DmHV4bYi.js    ← the island component chunk
-/_astro/index._OACqPSs.js            ← page entry (loaded by the runtime)
-```
-
-(Run `ls dist/_astro/` to get the current hashed names.)
-
-### 2. Paste the markup
-
-Add a **Custom HTML block** (Gutenberg) or **HTML widget** (Elementor) to the
-page, and paste these three pieces, copied verbatim from `dist/index.html`:
-
-1. The `<style>…</style>` block from `<head>` (the island's CSS).
-2. The two Astro runtime `<script>…</script>` blocks (the `Astro.load` shim and
-   the `astro-island` custom-element definition) that appear just before the
-   island element.
-3. The island element itself:
-
-   ```html
-   <astro-island
-     uid="Z29cyvd"
-     prefix="r1"
-     component-url="/_astro/CategoryPosts.DmHV4bYi.js"
-     component-export="default"
-     renderer-url="/_astro/client.CimA0ymp.js"
-     props="{}"
-     ssr
-     client="load"
-     opts='{"name":"CategoryPosts","value":true}'
-     await-children
-   ><p class="island-status">Loading recent posts…</p><!--astro:end--></astro-island>
-   ```
-
-   The `component-url` and `renderer-url` attributes must match the uploaded
-   filenames from step 1.
+1. `astro.config.mjs` sets, for production builds,
+   `base = '/wp-content/plugins/wcr-islands/island'` — the public path of the
+   plugin's `island/` folder. Adjust if your plugin path differs.
+2. `npm run build`, then copy the contents of `dist/` into the plugin's
+   `island/` folder.
+3. Add the `[wcr_island]` shortcode to the page via an Elementor Shortcode widget
+   (or a Gutenberg shortcode block). The shortcode reads the built `index.html`
+   and injects the stylesheet link, the Astro island runtime, and the
+   `<astro-island>` element — URLs already correct from the `base` setting.
 
 Once embedded, the relative `/wp-json` fetch is same-origin and works with no
-further CORS config.
+CORS config.
 
 ## Verifying the runtime fetch
 
-- `npm run dev` → three category sections populate from the live site.
+- `npm run dev` → the category sections populate from the feed route.
 - Edit/publish a post in WordPress, refresh → the change shows with no rebuild.
-- View-source on the built/embedded page → no post data is present in the
-  initial HTML, only the loading placeholder. This proves the fetch happens at
-  runtime in the browser.
-
-## Out of scope
-
-No plugin, no custom REST endpoint, no hero/curation/taxonomy logic, no
-pagination, no design polish. Just the three-category runtime fetch, embeddable
-in WordPress.
+- View-source on the built/embedded page → no post data in the initial HTML,
+  only the loading placeholder. This proves the fetch happens at runtime.

@@ -1,0 +1,10 @@
+Drop the Astro build output here.
+
+After `npm run build` (from the repo root), copy the *contents* of dist/
+into this folder so you end up with:
+
+  island/index.html
+  island/_astro/...
+
+This directory is otherwise intentionally empty in the repo; the built
+assets are not committed.

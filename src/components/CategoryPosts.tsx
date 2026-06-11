@@ -1,30 +1,7 @@
 import { useEffect, useState } from 'react';
-import {
-  CATEGORIES,
-  PER_PAGE,
-  WP_API_BASE,
-  type CategoryConfig,
-} from '../config';
+import { WP_FEED_ENDPOINT } from '../config';
 
-// --- Minimal shape of the WordPress REST API response we care about ---
-interface WpPost {
-  id: number;
-  link: string;
-  date: string;
-  title: { rendered: string };
-  excerpt: { rendered: string };
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{ source_url?: string }>;
-  };
-}
-
-// A category's posts after mapping, plus any per-category error.
-interface CategoryResult {
-  config: CategoryConfig;
-  posts: Post[];
-  error?: string;
-}
-
+// --- Shape returned by the custom feed route (plugin/includes/class-feed-route.php) ---
 interface Post {
   id: number;
   title: string;
@@ -34,12 +11,14 @@ interface Post {
   thumbnail: string | null;
 }
 
-// Strip HTML tags from an excerpt and collapse whitespace. WordPress excerpts
-// arrive as HTML (e.g. a wrapped <p> plus a "read more" link); for this
-// prototype we render plain text.
-function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+interface Group {
+  key: string;
+  label: string;
+  posts: Post[];
+}
+
+interface FeedResponse {
+  groups: Group[];
 }
 
 function formatDate(iso: string): string {
@@ -53,73 +32,26 @@ function formatDate(iso: string): string {
       });
 }
 
-function mapPost(raw: WpPost): Post {
-  const media = raw._embedded?.['wp:featuredmedia']?.[0];
-  return {
-    id: raw.id,
-    title: stripHtml(raw.title?.rendered ?? ''),
-    date: raw.date,
-    excerpt: stripHtml(raw.excerpt?.rendered ?? ''),
-    link: raw.link,
-    thumbnail: media?.source_url ?? null,
-  };
-}
-
-// Resolve a category slug to its numeric ID via the REST API. If the config
-// already provides an `id`, use it directly and skip the lookup.
-async function resolveCategoryId(config: CategoryConfig): Promise<number> {
-  if (typeof config.id === 'number') return config.id;
-  if (!config.slug) {
-    throw new Error('Category config needs a `slug` or an `id`.');
-  }
-  const res = await fetch(
-    `${WP_API_BASE}/categories?slug=${encodeURIComponent(config.slug)}`,
-  );
-  if (!res.ok) {
-    throw new Error(`Category lookup failed (HTTP ${res.status}).`);
-  }
-  const cats: Array<{ id: number }> = await res.json();
-  if (!cats.length) {
-    throw new Error(`No category found for slug "${config.slug}".`);
-  }
-  return cats[0].id;
-}
-
-// Fetch one category's recent posts (with embedded media), mapped to `Post`.
-async function fetchCategory(config: CategoryConfig): Promise<CategoryResult> {
-  try {
-    const id = await resolveCategoryId(config);
-    const res = await fetch(
-      `${WP_API_BASE}/posts?categories=${id}&per_page=${PER_PAGE}&_embed`,
-    );
-    if (!res.ok) {
-      throw new Error(`Posts request failed (HTTP ${res.status}).`);
-    }
-    const raw: WpPost[] = await res.json();
-    return { config, posts: raw.map(mapPost) };
-  } catch (err) {
-    return {
-      config,
-      posts: [],
-      error: err instanceof Error ? err.message : 'Unknown error.',
-    };
-  }
-}
-
 export default function CategoryPosts() {
-  const [results, setResults] = useState<CategoryResult[] | null>(null);
+  const [groups, setGroups] = useState<Group[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Runtime fetch: runs in the browser on mount, never at build time.
+  // The custom route returns the three groups already assembled, so the client
+  // does a single request and renders whatever it gets back.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    Promise.all(CATEGORIES.map(fetchCategory))
+    fetch(WP_FEED_ENDPOINT)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Feed request failed (HTTP ${res.status}).`);
+        return res.json() as Promise<FeedResponse>;
+      })
       .then((data) => {
-        if (!cancelled) setResults(data);
+        if (!cancelled) setGroups(data.groups ?? []);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -148,20 +80,16 @@ export default function CategoryPosts() {
   }
 
   return (
-    <div className="categories">
-      {results?.map((result) => (
-        <section className="category" key={result.config.label}>
-          <h2 className="category__title">{result.config.label}</h2>
+    <div className="wcr-islands">
+      {groups?.map((group) => (
+        <section className="category" key={group.key}>
+          <h2 className="category__title">{group.label}</h2>
 
-          {result.error ? (
-            <p className="island-status island-status--error">
-              {result.error}
-            </p>
-          ) : result.posts.length === 0 ? (
+          {group.posts.length === 0 ? (
             <p className="island-status">No posts found.</p>
           ) : (
             <ul className="post-grid">
-              {result.posts.map((post) => (
+              {group.posts.map((post) => (
                 <li className="post-card" key={post.id}>
                   <a className="post-card__link" href={post.link}>
                     {post.thumbnail ? (

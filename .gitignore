@@ -1,5 +1,8 @@
 # build output
 dist/
+# island build output copied into the reference plugin (keep folder, not assets)
+plugin/island/*
+!plugin/island/.gitkeep
 # dependencies
 node_modules/
 # generated types
