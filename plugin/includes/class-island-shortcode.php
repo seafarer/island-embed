@@ -5,13 +5,15 @@
  * Drop it into an Elementor "Shortcode" widget (or any Gutenberg shortcode
  * block):  [wcr_island]
  *
- * How it works: it reads the built `island/index.html` and lifts out exactly
- * what the island needs to hydrate — the stylesheet <link> from <head> and the
- * inner HTML of <body> (Astro's island runtime + the <astro-island> element).
- * Because astro.config.mjs sets `base` to this plugin's path, the asset URLs
- * baked into that markup already resolve correctly, so there is nothing to
- * rewrite and NOTHING to re-paste after a rebuild — rebuild, copy dist/ into
- * island/, done.
+ * How it works: it reads the built `island/index.html` and returns the inner
+ * HTML of <body> — Astro's island runtime + the <astro-island> element. Because
+ * astro.config.mjs sets `base` to this plugin's path, the asset URLs baked into
+ * that markup already resolve correctly, so there is nothing to rewrite and
+ * NOTHING to re-paste after a rebuild — rebuild, copy dist/ into island/, done.
+ *
+ * The island's CSS is NOT a separate stylesheet: it is bundled into the island
+ * JS and injected inside the island's shadow root at runtime, which is what
+ * isolates it from the host theme's CSS. So there is no <link> to enqueue here.
  */
 
 if (! defined('ABSPATH')) {
@@ -21,9 +23,6 @@ if (! defined('ABSPATH')) {
 class WCR_Islands_Shortcode {
 
     const TAG = 'wcr_island';
-
-    /** Ensures the island CSS is only emitted once even with multiple islands. */
-    private bool $css_emitted = false;
 
     public function register(): void {
         add_shortcode(self::TAG, [$this, 'render']);
@@ -45,23 +44,12 @@ class WCR_Islands_Shortcode {
             return '';
         }
 
-        $out = '';
-
-        // 1. Stylesheet link(s) from <head>, emitted once per page.
-        if (! $this->css_emitted) {
-            if (preg_match('/<head\b[^>]*>(.*?)<\/head>/is', $html, $head)
-                && preg_match_all('/<link\b[^>]*rel=["\']stylesheet["\'][^>]*>/i', $head[1], $links)) {
-                $out .= implode('', $links[0]);
-            }
-            $this->css_emitted = true;
-        }
-
-        // 2. Inner HTML of <body> — Astro's island runtime + the <astro-island>
-        //    element, URLs already base-prefixed at build time.
+        // Inner HTML of <body> — Astro's island runtime + the <astro-island>
+        // element, with URLs already base-prefixed at build time.
         if (preg_match('/<body\b[^>]*>(.*?)<\/body>/is', $html, $body)) {
-            $out .= $body[1];
+            return $body[1];
         }
 
-        return $out;
+        return '';
     }
 }

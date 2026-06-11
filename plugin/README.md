@@ -71,8 +71,10 @@ block (Gutenberg) to the page:
 [wcr_island]
 ```
 
-The CSS link + runtime + island element are injected; the island hydrates and
-fetches the feed at runtime. Same-origin, so no CORS config.
+The runtime + island element are injected; the island hydrates, attaches a
+shadow root, injects its own CSS into it, and fetches the feed at runtime.
+Same-origin, so no CORS config — and the shadow root keeps the host theme's CSS
+from cascading into the island (and vice versa).
 
 ## The route contract
 
@@ -110,6 +112,7 @@ This is a prototype reference, not production code. Before shipping, consider:
 - Replacing `category_name` with the real custom-taxonomy query.
 - Server-side caching of the feed (a short transient) if the query is heavy —
   while keeping the HTTP response uncached so edits still appear on refresh.
-- Properly enqueuing the CSS via `wp_enqueue_style` instead of an inline
-  `<link>` if you prefer it in `<head>` (the inline link is used here so a
-  single shortcode call is fully self-contained inside an Elementor widget).
+- The island's CSS lives inside its shadow root, so there's no theme stylesheet
+  to enqueue or de-conflict. If you ever need to theme the island from outside,
+  expose CSS custom properties on `:host` (they pierce the shadow boundary)
+  rather than reaching into its markup.

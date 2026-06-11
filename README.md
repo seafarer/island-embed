@@ -16,7 +16,7 @@ with no rebuild.
 
 - Astro 5 (static output)
 - @astrojs/react, React 18, TypeScript
-- Plain global CSS (kept minimal on purpose)
+- Minimal CSS, injected into a **shadow root** for isolation (see below)
 
 ## How it works
 
@@ -31,6 +31,21 @@ with no rebuild.
 - The fetch uses a **relative** `/wp-json` path so the same code works in dev
   (via the Vite proxy) and in production (same-origin once embedded in
   WordPress).
+
+### Style isolation (shadow DOM)
+
+When embedded in a real WordPress/Elementor page, loose theme selectors like
+`.something div { max-width: 100% }` cascade into the island and clobber its
+layout. To prevent that, the island attaches a **shadow root** to its host
+element and renders everything inside it, with its CSS (imported as a string via
+Vite's `?inline` and injected as a `<style>` in the root). The host theme's
+rules can't cross the shadow boundary, and the island's can't leak out.
+
+A consequence worth knowing: the island ships **no external stylesheet** — the
+CSS rides inside the island's JS bundle. Inherited properties (font-family,
+color) still cross the boundary by design, so the island inherits the site's
+font; `src/styles/island.css` sets a baseline on `:host`, and there's a note
+there on switching to `all: initial` if you want to block inherited styles too.
 
 ## The data contract
 
@@ -89,8 +104,9 @@ markup to re-paste. The full steps are in
    `island/` folder.
 3. Add the `[wcr_island]` shortcode to the page via an Elementor Shortcode widget
    (or a Gutenberg shortcode block). The shortcode reads the built `index.html`
-   and injects the stylesheet link, the Astro island runtime, and the
-   `<astro-island>` element — URLs already correct from the `base` setting.
+   and injects the Astro island runtime + the `<astro-island>` element — URLs
+   already correct from the `base` setting. (There's no stylesheet to wire up;
+   the island carries its own CSS into its shadow root.)
 
 Once embedded, the relative `/wp-json` fetch is same-origin and works with no
 CORS config.

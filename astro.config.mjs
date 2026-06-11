@@ -20,11 +20,6 @@ export default defineConfig({
   // chunks resolve once the dist/ folder is dropped into the plugin.
   base: isBuild ? PROD_BASE : '/',
   integrations: [react()],
-  build: {
-    // Emit the island CSS as a real file in _astro/ (instead of inlining it)
-    // so the WordPress plugin can pick it up and enqueue it.
-    inlineStylesheets: 'never',
-  },
   vite: {
     server: {
       proxy: {

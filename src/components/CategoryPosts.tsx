@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { WP_FEED_ENDPOINT } from '../config';
+// Imported as a string (not a <link>) so we can inject it inside the shadow
+// root. Vite's `?inline` returns the processed CSS as the default export.
+import islandCss from '../styles/island.css?inline';
 
 // --- Shape returned by the custom feed route (plugin/includes/class-feed-route.php) ---
 interface Post {
@@ -32,7 +36,8 @@ function formatDate(iso: string): string {
       });
 }
 
-export default function CategoryPosts() {
+// The actual feed UI. Rendered INSIDE the shadow root (see CategoryPosts).
+function Feed() {
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +123,36 @@ export default function CategoryPosts() {
           )}
         </section>
       ))}
+    </div>
+  );
+}
+
+// Island entry. Attaches a shadow root to its host element and renders the feed
+// (plus its CSS) inside it, so the host theme's stylesheet cannot cascade into
+// our markup and ours cannot leak out. The fetch still happens at runtime.
+export default function CategoryPosts() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [shadow, setShadow] = useState<ShadowRoot | null>(null);
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    // Reuse an existing root if one is already attached (StrictMode re-runs).
+    setShadow(el.shadowRoot ?? el.attachShadow({ mode: 'open' }));
+  }, []);
+
+  return (
+    <div ref={hostRef}>
+      {/* Light-DOM fallback shown until the shadow root attaches on hydrate. */}
+      {!shadow && <p>Loading recent posts…</p>}
+      {shadow &&
+        createPortal(
+          <>
+            <style>{islandCss}</style>
+            <Feed />
+          </>,
+          shadow,
+        )}
     </div>
   );
 }
