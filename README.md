@@ -1,6 +1,6 @@
 # WP Astro Islands Prototype
 
-A prototype validating the **runtime-fetch islands** pattern for the Artemis
+A prototype validating the **runtime-fetch islands** pattern for a hybrid WordPress/static
 landing page. A single Astro page hosts one React island that, on every page
 load, fetches a landing-page feed from a custom WordPress REST route and renders
 it client-side. The post data is **never** baked at build time — it loads fresh
