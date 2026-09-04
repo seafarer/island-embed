@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 
 // The local WordPress origin used for the dev proxy.
-const WP_ORIGIN = 'http://refugepoint.test';
+const WP_ORIGIN = 'https://refugepoint.test';
 
 // In production the island assets are served from inside the WordPress plugin
 // that owns them, so the URLs Astro bakes into the markup must point there.

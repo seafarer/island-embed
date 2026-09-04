@@ -2,18 +2,15 @@
    island's shadow root, so the host theme's CSS cannot cascade in and ours
    cannot leak out. `:host` is the shadow host element. */
 
-:host {
-  display: block;
-  /* Inherited properties (font, color) still cross the shadow boundary, so we
+     /* Inherited properties (font, color) still cross the shadow boundary, so we
      set our own baseline rather than depend on the theme. Swap to `all: initial`
      here if you want to also block inherited font/color from the parent. */
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    sans-serif;
-  color: #1a1a1a;
+
+
+:host {
+  display: block;
+  font-family: inherit;
+  color: inherit;
 }
 
 .wcr-islands {
