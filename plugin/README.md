@@ -1,4 +1,4 @@
-# WCR Islands — reference plugin
+# Island Embed — reference plugin
 
 A **reference** WordPress plugin showing how the production site owns the three
 concerns the Astro prototype hands off to WordPress:
@@ -12,10 +12,10 @@ wired into this Astro repo's build.
 
 ```
 plugin/
-  wcr-islands.php                      Plugin bootstrap + constants
+  island-embed.php                      Plugin bootstrap + constants
   includes/
-    class-feed-route.php               GET /wp-json/wcr/v1/landing-feed
-    class-island-shortcode.php         [wcr_island] shortcode
+    class-feed-route.php               GET /wp-json/island-embed/v1/landing-feed
+    class-island-shortcode.php         [island_embed] shortcode
   island/                              ← drop the Astro build output here
     .gitkeep                           (built assets are git-ignored)
 ```
@@ -23,7 +23,7 @@ plugin/
 ## How the pieces fit
 
 - The React island (`src/components/CategoryPosts.tsx`) does **one** runtime
-  fetch to `/wp-json/wcr/v1/landing-feed` and renders whatever groups come back.
+  fetch to `/wp-json/island-embed/v1/landing-feed` and renders whatever groups come back.
 - `class-feed-route.php` returns those groups already assembled server-side, so
   all the taxonomy/curation logic stays in PHP and the client stays dumb. The
   response is sent `Cache-Control: no-store`, so publishing a post shows up on
@@ -40,7 +40,7 @@ plugin/
 `astro.config.mjs` sets, for production builds:
 
 ```
-base = '/wp-content/plugins/wcr-islands/island'
+base = '/wp-content/plugins/island-embed/island'
 ```
 
 This MUST equal the public URL path of this plugin's `island/` folder. If your
@@ -57,8 +57,8 @@ It builds, **wipes the old assets**, and copies the fresh `dist/` in — so
 are the #1 cause of the island failing to load):
 
 ```bash
-WCR_PLUGIN_ISLAND_DIR=/path/to/wcr-islands/island npm run deploy
-# or:  npm run deploy -- /path/to/wcr-islands/island
+ISLAND_EMBED_TARGET=/path/to/island-embed/island npm run deploy
+# or:  npm run deploy -- /path/to/island-embed/island
 ```
 
 It prints the exact files it deployed. Then **hard-refresh** the page.
@@ -73,7 +73,7 @@ Activate the plugin, then add a **Shortcode** widget (Elementor) or shortcode
 block (Gutenberg) to the page:
 
 ```
-[wcr_island]
+[island_embed]
 ```
 
 The runtime + island element are injected; the island hydrates, attaches a
@@ -83,7 +83,7 @@ from cascading into the island (and vice versa).
 
 ## The route contract
 
-`GET /wp-json/wcr/v1/landing-feed`:
+`GET /wp-json/island-embed/v1/landing-feed`:
 
 ```json
 {

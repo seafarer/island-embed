@@ -85,7 +85,7 @@ function Feed() {
   }
 
   return (
-    <div className="wcr-islands">
+    <div className="island-embed">
       {groups?.map((group) => (
         <section className="category" key={group.key}>
           <h2 className="category__title">{group.label}</h2>
